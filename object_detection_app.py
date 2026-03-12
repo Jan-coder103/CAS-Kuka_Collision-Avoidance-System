@@ -351,6 +351,8 @@ class ObjectDetectionApp:
         self.last_detection_time_cam2 = 0
         self.detection_interval = 5  # seconds
         self.video_update_interval = 50  # milliseconds
+        self.detection_time_cam1 = 0.0  # Time taken for last detection on camera 1 (seconds)
+        self.detection_time_cam2 = 0.0  # Time taken for last detection on camera 2 (seconds)
         
         # Detection state
         self.detection_active = False
@@ -597,9 +599,16 @@ class ObjectDetectionApp:
         self.detection_count_label2 = ttk.Label(info_frame, text="Cam 2 Objects: 0")
         self.detection_count_label2.grid(row=0, column=1, padx=5, pady=2)
         
+        # Detection time labels
+        self.detection_time_label1 = ttk.Label(info_frame, text="Cam 1 Time: 0ms")
+        self.detection_time_label1.grid(row=1, column=0, padx=5, pady=2)
+        
+        self.detection_time_label2 = ttk.Label(info_frame, text="Cam 2 Time: 0ms")
+        self.detection_time_label2.grid(row=1, column=1, padx=5, pady=2)
+        
         # Last detection time label
         self.last_detection_label = ttk.Label(info_frame, text="Last detection: Never")
-        self.last_detection_label.grid(row=1, column=0, columnspan=2, padx=5, pady=2)
+        self.last_detection_label.grid(row=2, column=0, columnspan=2, padx=5, pady=2)
         
         # Configure grid weights
         self.root.columnconfigure(0, weight=1)
@@ -729,8 +738,15 @@ class ObjectDetectionApp:
         """Run YOLOv8 detection on camera 1 frame"""
         if self.current_frame1 is not None and self.model_loaded:
             try:
+                # Start timing
+                start_time = time.time()
+                
                 # Run detection
                 results = self.model(self.current_frame1, verbose=False)
+                
+                # End timing
+                end_time = time.time()
+                self.detection_time_cam1 = end_time - start_time
                 
                 # Store results
                 self.detection_results1 = results
@@ -747,8 +763,15 @@ class ObjectDetectionApp:
         """Run YOLOv8 detection on camera 2 frame"""
         if self.current_frame2 is not None and self.model_loaded:
             try:
+                # Start timing
+                start_time = time.time()
+                
                 # Run detection
                 results = self.model(self.current_frame2, verbose=False)
+                
+                # End timing
+                end_time = time.time()
+                self.detection_time_cam2 = end_time - start_time
                 
                 # Store results
                 self.detection_results2 = results
@@ -774,6 +797,24 @@ class ObjectDetectionApp:
         
         # Get the first result
         result = results[0]
+        
+        # Draw detection time in top-left corner
+        if camera_num == 1:
+            det_time = self.detection_time_cam1
+        else:
+            det_time = self.detection_time_cam2
+        
+        # Draw timing info
+        time_text = f"Detect: {det_time*1000:.1f}ms"
+        cv2.putText(
+            frame,
+            time_text,
+            (10, 30),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (0, 255, 255),  # Yellow color
+            2
+        )
         
         # Draw bounding boxes
         for box in result.boxes:
@@ -947,6 +988,7 @@ class ObjectDetectionApp:
         """Update detection information labels for Camera 1"""
         if results is None or len(results) == 0:
             self.detection_count_label1.configure(text="Cam 1 Objects: 0")
+            self.detection_time_label1.configure(text="Cam 1 Time: 0ms")
             return
         
         # Count detected objects
@@ -957,6 +999,10 @@ class ObjectDetectionApp:
         else:
             self.detection_count_label1.configure(text="Cam 1 Objects: 0")
         
+        # Update detection time
+        time_ms = self.detection_time_cam1 * 1000
+        self.detection_time_label1.configure(text=f"Cam 1 Time: {time_ms:.1f}ms")
+        
         # Update last detection time
         current_time = time.strftime("%H:%M:%S")
         self.last_detection_label.configure(text=f"Last detection: {current_time}")
@@ -965,6 +1011,7 @@ class ObjectDetectionApp:
         """Update detection information labels for Camera 2"""
         if results is None or len(results) == 0:
             self.detection_count_label2.configure(text="Cam 2 Objects: 0")
+            self.detection_time_label2.configure(text="Cam 2 Time: 0ms")
             return
         
         # Count detected objects
@@ -974,6 +1021,10 @@ class ObjectDetectionApp:
             self.detection_count_label2.configure(text=f"Cam 2 Objects: {count}")
         else:
             self.detection_count_label2.configure(text="Cam 2 Objects: 0")
+        
+        # Update detection time
+        time_ms = self.detection_time_cam2 * 1000
+        self.detection_time_label2.configure(text=f"Cam 2 Time: {time_ms:.1f}ms")
         
         # Update last detection time
         current_time = time.strftime("%H:%M:%S")
