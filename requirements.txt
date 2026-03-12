@@ -1,0 +1,11 @@
+# ROS 2 dependencies
+rclpy>=5.0.0
+geometry_msgs
+
+# Vision and ML dependencies
+opencv-python>=4.5.0
+ultralytics>=8.0.0
+pillow>=9.0.0
+
+# GUI dependencies (already in standard library)
+# tkinter
